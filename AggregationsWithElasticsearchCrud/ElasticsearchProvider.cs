@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using AggregationsWithElasticsearchCrud.Model;
 using ElasticsearchCRUD;
 using ElasticsearchCRUD.ContextSearch.SearchModel;
@@ -11,7 +12,7 @@ namespace AggregationsWithElasticsearchCrud
 	public class ElasticsearchProvider
 	{
 		protected readonly IElasticsearchMappingResolver ElasticsearchMappingResolver = new ElasticsearchMappingResolver();
-		protected const string ConnectionString = "http://localhost.fiddler:9200";
+		protected const string ConnectionString = "http://localhost:9200";
 
 		public TermsBucketAggregationsResult SearchFirstNameTermsBucketAggregation()
 		{
@@ -70,8 +71,9 @@ namespace AggregationsWithElasticsearchCrud
 			return aggResult;
 		}
 
-		public TermsBucketAggregationsResult SearchLastNameTermsBucketAggregationSignificantTermsBucketAggregationFirstNameMatches()
+		public void SearchLastNameTermsBucketAggregationSignificantTermsBucketAggregationFirstNameMatches()
 		{
+			// Create the aggregation search result
 			TermsBucketAggregationsResult aggResult;
 			var search = new Search
 			{
@@ -98,13 +100,33 @@ namespace AggregationsWithElasticsearchCrud
 				}
 			};
 
+			// Send the search to Elasticsearch
 			using (var context = new ElasticsearchContext(ConnectionString, ElasticsearchMappingResolver))
 			{
 				var items = context.Search<Person>(search, new SearchUrlParameters { SeachType = SeachType.count });
 				aggResult = items.PayloadResult.Aggregations.GetComplexValue<TermsBucketAggregationsResult>("testLastName");
 			}
 
-			return aggResult;
+			// Lets display the Aggregation results in the console
+			foreach (var bucket in aggResult.Buckets)
+			{
+				var significantTermsBucketAggregationsResult = bucket.GetSubAggregationsFromJTokenName<SignificantTermsBucketAggregationsResult>("testFirstName");
+
+				foreach (var childbucket in significantTermsBucketAggregationsResult.Buckets)
+				{
+					bool writeHeader = true;
+					var hits = childbucket.GetSubAggregationsFromJTokenName<TopHitsMetricAggregationsResult<Person>>("tophits");
+					foreach (var hit in hits.Hits.HitsResult)
+					{
+						if (writeHeader)
+						{
+							Console.Write("\n{0} {1}, Found Ids: ", hit.Source.FirstName, hit.Source.LastName);
+						}
+						Console.Write("{0} ", hit.Id);
+						writeHeader = false;
+					}
+				}
+			}
 		}
 
 	}
