@@ -130,8 +130,9 @@ namespace AggregationsWithElasticsearchCrud
 			}
 		}
 
-		public void SearchAggDateRangesBucketAggregationWithExtentedStats()
+		public RangesBucketAggregationsResult SearchAggDateRangesBucketAggregationWithExtentedStats()
 		{
+			RangesBucketAggregationsResult aggResult;
 			var search = new Search
 			{
 				Aggs = new List<IAggs>
@@ -158,8 +159,10 @@ namespace AggregationsWithElasticsearchCrud
 			using (var context = new ElasticsearchContext(ConnectionString, ElasticsearchMappingResolver))
 			{
 				var items = context.Search<Person>(search, new SearchUrlParameters { SeachType = SeachType.count });
-				var aggResult = items.PayloadResult.Aggregations.GetComplexValue<RangesBucketAggregationsResult>("testRangesBucketAggregation");
+				aggResult = items.PayloadResult.Aggregations.GetComplexValue<RangesBucketAggregationsResult>("testRangesBucketAggregation");
 			}
+
+			return aggResult;
 		}
 	}
 }
