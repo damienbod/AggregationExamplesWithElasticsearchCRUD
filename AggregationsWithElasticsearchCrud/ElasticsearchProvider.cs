@@ -6,13 +6,14 @@ using ElasticsearchCRUD.ContextSearch.SearchModel;
 using ElasticsearchCRUD.ContextSearch.SearchModel.AggModel;
 using ElasticsearchCRUD.Model.SearchModel;
 using ElasticsearchCRUD.Model.SearchModel.Aggregations;
+using ElasticsearchCRUD.Model.SearchModel.Aggregations.RangeParam;
 
 namespace AggregationsWithElasticsearchCrud
 {
 	public class ElasticsearchProvider
 	{
 		protected readonly IElasticsearchMappingResolver ElasticsearchMappingResolver = new ElasticsearchMappingResolver();
-		protected const string ConnectionString = "http://localhost:9200";
+		protected const string ConnectionString = "http://localhost.fiddler:9200";
 
 		public TermsBucketAggregationsResult SearchFirstNameTermsBucketAggregation()
 		{
@@ -129,5 +130,36 @@ namespace AggregationsWithElasticsearchCrud
 			}
 		}
 
+		public void SearchAggDateRangesBucketAggregationWithExtentedStats()
+		{
+			var search = new Search
+			{
+				Aggs = new List<IAggs>
+				{
+					new ExtendedStatsMetricAggregation("stats", "modifieddate"),
+					new DateRangeBucketAggregation("testRangesBucketAggregation", "modifieddate", "MM-yyy", new List<RangeAggregationParameter<string>>
+					{
+						new ToRangeAggregationParameter<string>("now-10y/y"),
+						new ToFromRangeAggregationParameter<string>("now-8y/y", "now-9y/y"),
+						new ToFromRangeAggregationParameter<string>("now-7y/y", "now-8y/y"),
+						new ToFromRangeAggregationParameter<string>("now-6y/y", "now-7y/y"),
+						new ToFromRangeAggregationParameter<string>("now-5y/y", "now-6y/y"),
+						new FromRangeAggregationParameter<string>("now-5y/y")
+					})
+					{
+						Aggs = new List<IAggs>
+						{
+							new ExtendedStatsMetricAggregation("stats", "modifieddate")
+						} 
+					}
+				}
+			};
+
+			using (var context = new ElasticsearchContext(ConnectionString, ElasticsearchMappingResolver))
+			{
+				var items = context.Search<Person>(search, new SearchUrlParameters { SeachType = SeachType.count });
+				var aggResult = items.PayloadResult.Aggregations.GetComplexValue<RangesBucketAggregationsResult>("testRangesBucketAggregation");
+			}
+		}
 	}
 }
