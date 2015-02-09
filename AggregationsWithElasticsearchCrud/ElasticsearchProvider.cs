@@ -13,7 +13,7 @@ namespace AggregationsWithElasticsearchCrud
 	public class ElasticsearchProvider
 	{
 		protected readonly IElasticsearchMappingResolver ElasticsearchMappingResolver = new ElasticsearchMappingResolver();
-		protected const string ConnectionString = "http://localhost.fiddler:9200";
+		protected const string ConnectionString = "http://localhost:9200";
 
 		public TermsBucketAggregationsResult SearchFirstNameTermsBucketAggregation()
 		{
